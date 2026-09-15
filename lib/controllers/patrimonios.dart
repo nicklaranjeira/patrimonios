@@ -1,30 +1,38 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../models/patrimonios.dart';
 import '../service/patrimonios.dart';
 
 class PatrimoniosController extends GetxController {
-  // Instância da Service
-  final Patrimonios api = Patrimonios();
+  // Instância da Service GetConnect
+  final PatrimoniosApi api = PatrimoniosApi();
 
-  // Lista de patrimônios
+  // Lista reativa de patrimônios
   final RxList<Patrimonios> patrimonios = <Patrimonios>[].obs;
 
-  // Controla o carregamento
+  // Controle de carregamento
   final RxBool isLoading = false.obs;
 
-  // Mensagem de erro
+  // Mensagem de erro reativa
   final RxString erro = ''.obs;
 
-  // Executado quando o Controller é iniciado
+  // Campo de texto de pesquisa
+  final TextEditingController searchController = TextEditingController();
+
   @override
   void onInit() {
     super.onInit();
-
     listarPatrimonios();
   }
 
-  // GET - Listar patrimônios
+  @override
+  void onClose() {
+    searchController.dispose();
+    super.onClose();
+  }
+
+  /// GET /api/v1/patrimonios
   Future<void> listarPatrimonios() async {
     try {
       isLoading.value = true;
@@ -35,22 +43,27 @@ class PatrimoniosController extends GetxController {
       if (resposta.statusCode == 200) {
         patrimonios.assignAll(resposta.body ?? []);
       } else {
-        erro.value = 'Erro ao carregar patrimônios';
+        erro.value = 'Erro ao carregar patrimônios (${resposta.statusCode})';
       }
     } catch (e) {
-      erro.value = 'Erro de conexão com a API';
+      erro.value = 'Erro de conexão com o servidor. Verifique se a API está ativa na porta 8080.';
     } finally {
       isLoading.value = false;
     }
   }
 
-  // GET - Pesquisar patrimônio
+  /// GET /api/v1/patrimonios?q={termo}
   Future<void> pesquisar(String termo) async {
+    final query = termo.trim();
+    if (query.isEmpty) {
+      return listarPatrimonios();
+    }
+
     try {
       isLoading.value = true;
       erro.value = '';
 
-      final resposta = await api.pesquisaPatrimonio(termo);
+      final resposta = await api.pesquisaPatrimonio(query);
 
       if (resposta.statusCode == 200) {
         patrimonios.assignAll(resposta.body ?? []);
@@ -64,9 +77,16 @@ class PatrimoniosController extends GetxController {
     }
   }
 
-  // GET - Visualizar patrimônio por ID
-  Future<Patrimonios?> visualizar(String id) async {
+  /// Limpar pesquisa e recarregar lista completa
+  void limparPesquisa() {
+    searchController.clear();
+    listarPatrimonios();
+  }
+
+  /// GET /api/v1/patrimonios/{id}
+  Future<Patrimonios?> visualizar(dynamic id) async {
     try {
+      erro.value = '';
       final resposta = await api.visualizarPatrimonio(id);
 
       if (resposta.statusCode == 200) {
@@ -81,7 +101,7 @@ class PatrimoniosController extends GetxController {
     }
   }
 
-  // POST - Cadastrar patrimônio
+  /// POST /api/v1/patrimonios
   Future<bool> cadastrar(Patrimonios patrimonio) async {
     try {
       isLoading.value = true;
@@ -91,20 +111,43 @@ class PatrimoniosController extends GetxController {
 
       if (resposta.statusCode == 200 || resposta.statusCode == 201) {
         await listarPatrimonios();
+        Get.snackbar(
+          'Sucesso',
+          'Patrimônio cadastrado com sucesso!',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green.shade700,
+          colorText: Colors.white,
+          duration: const Duration(seconds: 3),
+        );
         return true;
       }
 
-      erro.value = 'Erro ao cadastrar patrimônio';
+      final mensagemErro = resposta.statusText ?? 'Falha no cadastro';
+      erro.value = 'Erro ao cadastrar patrimônio: $mensagemErro (${resposta.statusCode})';
+      Get.snackbar(
+        'Erro ao cadastrar',
+        erro.value,
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.redAccent,
+        colorText: Colors.white,
+      );
       return false;
     } catch (e) {
-      erro.value = 'Erro de conexão com a API';
+      erro.value = 'Erro de conexão ao cadastrar: $e';
+      Get.snackbar(
+        'Erro de Conexão',
+        erro.value,
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.redAccent,
+        colorText: Colors.white,
+      );
       return false;
     } finally {
       isLoading.value = false;
     }
   }
 
-  // PUT - Atualizar patrimônio
+  /// PUT /api/v1/patrimonios/{id}
   Future<bool> atualizar(Patrimonios patrimonio) async {
     try {
       isLoading.value = true;
@@ -114,21 +157,43 @@ class PatrimoniosController extends GetxController {
 
       if (resposta.statusCode == 200) {
         await listarPatrimonios();
+        Get.snackbar(
+          'Sucesso',
+          'Patrimônio atualizado com sucesso!',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green.shade700,
+          colorText: Colors.white,
+          duration: const Duration(seconds: 3),
+        );
         return true;
       }
 
-      erro.value = 'Erro ao atualizar patrimônio';
+      erro.value = 'Erro ao atualizar patrimônio (${resposta.statusCode})';
+      Get.snackbar(
+        'Erro',
+        erro.value,
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.redAccent,
+        colorText: Colors.white,
+      );
       return false;
     } catch (e) {
       erro.value = 'Erro de conexão com a API';
+      Get.snackbar(
+        'Erro',
+        erro.value,
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.redAccent,
+        colorText: Colors.white,
+      );
       return false;
     } finally {
       isLoading.value = false;
     }
   }
 
-  // DELETE - Excluir patrimônio
-  Future<bool> excluir(String id) async {
+  /// DELETE /api/v1/patrimonios/{id}
+  Future<bool> excluir(dynamic id) async {
     try {
       isLoading.value = true;
       erro.value = '';
@@ -136,15 +201,38 @@ class PatrimoniosController extends GetxController {
       final resposta = await api.excluirPatrimonio(id);
 
       if (resposta.statusCode == 200 || resposta.statusCode == 204) {
-        patrimonios.removeWhere((patrimonio) => patrimonio.id == id);
-
+        patrimonios.removeWhere((p) =>
+            p.id?.toString() == id.toString() ||
+            p.numeroInventario == id.toString());
+        Get.snackbar(
+          'Sucesso',
+          'Patrimônio excluído com sucesso!',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.orange.shade800,
+          colorText: Colors.white,
+          duration: const Duration(seconds: 3),
+        );
         return true;
       }
 
-      erro.value = 'Erro ao excluir patrimônio';
+      erro.value = 'Erro ao excluir patrimônio (${resposta.statusCode})';
+      Get.snackbar(
+        'Erro',
+        erro.value,
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.redAccent,
+        colorText: Colors.white,
+      );
       return false;
     } catch (e) {
       erro.value = 'Erro de conexão com a API';
+      Get.snackbar(
+        'Erro',
+        erro.value,
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.redAccent,
+        colorText: Colors.white,
+      );
       return false;
     } finally {
       isLoading.value = false;

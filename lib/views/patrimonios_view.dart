@@ -16,8 +16,6 @@ class PatrimoniosView extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Gestão de Patrimônios'),
-        centerTitle: true,
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),

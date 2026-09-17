@@ -6,7 +6,7 @@ import '../service/patrimonios.dart';
 
 class PatrimoniosController extends GetxController {
   // Instância da Service GetConnect
-  final PatrimoniosApi api = PatrimoniosApi();
+  final PatrimoniosApi api = Get.put(PatrimoniosApi());
 
   // Lista reativa de patrimônios
   final RxList<Patrimonios> patrimonios = <Patrimonios>[].obs;
@@ -40,13 +40,13 @@ class PatrimoniosController extends GetxController {
 
       final resposta = await api.listarPatrimonios();
 
-      if (resposta.statusCode == 200) {
+      if (resposta.statusCode == 200 || resposta.statusCode == 201) {
         patrimonios.assignAll(resposta.body ?? []);
       } else {
         erro.value = 'Erro ao carregar patrimônios (${resposta.statusCode})';
       }
     } catch (e) {
-      erro.value = 'Erro de conexão com o servidor. Verifique se a API está ativa na porta 8080.';
+      erro.value = 'Erro de conexão com o servidor. Verifique se a API está ativa.';
     } finally {
       isLoading.value = false;
     }
@@ -65,7 +65,7 @@ class PatrimoniosController extends GetxController {
 
       final resposta = await api.pesquisaPatrimonio(query);
 
-      if (resposta.statusCode == 200) {
+      if (resposta.statusCode == 200 || resposta.statusCode == 201) {
         patrimonios.assignAll(resposta.body ?? []);
       } else {
         erro.value = 'Erro ao pesquisar patrimônio';
@@ -89,7 +89,7 @@ class PatrimoniosController extends GetxController {
       erro.value = '';
       final resposta = await api.visualizarPatrimonio(id);
 
-      if (resposta.statusCode == 200) {
+      if (resposta.statusCode == 200 || resposta.statusCode == 201) {
         return resposta.body;
       }
 
@@ -155,7 +155,7 @@ class PatrimoniosController extends GetxController {
 
       final resposta = await api.atualizarPatrimonio(patrimonio);
 
-      if (resposta.statusCode == 200) {
+      if (resposta.statusCode == 200 || resposta.statusCode == 201) {
         await listarPatrimonios();
         Get.snackbar(
           'Sucesso',

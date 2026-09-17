@@ -32,12 +32,15 @@ class Patrimonios {
     );
   }
 
-  /// Converte os dados para o formato esperado pelo backend (n_do_inventario, descricao, local, responsavel)
+  /// Converte os dados para o formato esperado pelo backend
+  /// Envia tanto n_do_inventario quanto numero_inventario para garantir compatibilidade
   Map<String, dynamic> toJson() {
+    final inv = numeroInventario.isNotEmpty
+        ? numeroInventario
+        : (id?.toString() ?? '');
     return {
-      'n_do_inventario': numeroInventario.isNotEmpty
-          ? numeroInventario
-          : (id?.toString() ?? ''),
+      'n_do_inventario': inv,
+      'numero_inventario': inv,
       'descricao': descricao,
       'local': local,
       'responsavel': responsavel,
